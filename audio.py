@@ -27,13 +27,16 @@ def split_signal(sig, rate, seconds, overlap):
     return splits
 
 
-def mel_spec(sig, rate, shape=(64, 256), fmin=500, fmax=12500, normalize=True, n_fft = 0):
+def mel_spec(sig, rate, shape=(64, 256), fmin=500, fmax=12500, normalize=True, preemphasis = 0.95, verbose = False):
+
     N_MELS = shape[0]
-    if n_fft > 0:
-        N_FFT = n_fft
-    else:
-        N_FFT = shape[0] * 16
+    N_FFT = shape[0] * 8
     HOP_LENGTH = len(sig) // (shape[1] - 1)
+    if verbose:
+        print((rate, HOP_LENGTH, N_FFT, N_MELS, fmax, fmin))
+
+    if preemphasis:
+        sig = np.append(sig[0], sig[1:] - preemphasis * sig[:-1])
 
     spec = librosa.feature.melspectrogram(y=sig,
                                           sr=rate,
@@ -41,17 +44,19 @@ def mel_spec(sig, rate, shape=(64, 256), fmin=500, fmax=12500, normalize=True, n
                                           hop_length=HOP_LENGTH,
                                           n_mels=N_MELS,
                                           fmin=fmin,
-                                          fmax=fmax)
+                                          fmax=fmax,
+                                          power = 1.0)
 
     spec = librosa.amplitude_to_db(spec, ref=np.max, top_db=80)
+
+    spec = spec[::-1, ...]
 
     if normalize:
         spec -= np.min(spec)
         if np.max(spec) > 0:
             spec /= np.max(spec)
 
-    return spec
-
+    return spec.astype('float32')
 
 def signal2noise(spec):
     # Get working copy
