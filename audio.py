@@ -87,3 +87,5 @@ def signal2noise(spec):
         s2n = spec_sum / (spec.shape[0] * spec.shape[1])
 
     return s2n
+
+
